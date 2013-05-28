@@ -1,27 +1,19 @@
 #!/usr/bin/python
 """
-python ~/source_code/cel_scanupc_norm/scratch.py fdir=$HOME/brca/GSE31448/raw/cel outdir=$HOME/brca/GSE31448/normed dry=True 
+python ~/source_code/cel_scanupc_norm/scratch.py fdir=$HOME/brca/GSE31448/raw/cel outdir=$HOME/brca/GSE31448/normed dry=True
+
+python ~/source_code/cel_scanupc_norm/scratch.py fdir=$HOME/brca/GSE31448/raw/cel.bkp outdir=$HOME/brca/GSE31448/normed gse=GSE31448 dry=True 
 """
 from lab_util import *
 import qsub
 import sys, os, shutil, re
+LOCALDIR = os.path.abspath(os.path.dirname(__file__))
 
 PLATFORMS = set(["hgu133plus2hsentrezg"])
 RX_BATCHDIR = re.compile("batch_\d+")
-R_SCRIPT_TMP = """library(SCAN.UPC)
-library(%(name)sprobe)
-library(%(name)s.db)
+R_NORM_TMP = open(os.path.join(LOCALDIR,"R_norm.R.tmp")).read()
+R_COMPILE_TMP = open(os.path.join(LOCALDIR,"R_compile.R.tmp")).read()
 
-celFilePath <- "%(path)s/*%(ptn)s"
-norm.cust = %(cmd)s(celFilePath, probeSummaryPackage=hgu133plus2hsentrezgprobe)
-IDS <- rownames(exprs(norm.cust)) # note: IDS are entrez_ids appended by _at
-EIDS <- mget(IDS, %(name)sENTREZID, ifnotfound=NA)
-rm.noann <- is.na(EIDS)
-E.%(cmd)s.%(batch)s <- norm.cust[!rm.noann,]
-rownames(E.%(cmd)s.%(batch)s) <- EIDS[!rm.noann]
-# every row in EID is now uniquely identified by an entrez ID
-save(E.%(cmd)s.%(batch)s, file="%(outdir)s/%(cmd)s.%(batch)s.RData")
-"""
 
 def split_cels(fdir, n=50, ptn=".CEL.gz", dry=False):
   """Given a directory of .CEL.gz files, split into subdirectories of <=n files each."""
@@ -63,11 +55,12 @@ def read_split(fdir, ptn):
   
 
       
-def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hgu133plus2hsentrezg", dry=False):
+def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hgu133plus2hsentrezg", dry=False, gse=None):
   assert fdir
   assert n
   assert ptn
   assert outdir
+  assert gse
   n = int(n)
   if isinstance(dosplit, basestring) and dosplit.lower() in ('f','false','none'): dosplit = False
   if isinstance(dry, basestring) and dry.lower() in ('f','false','none'): dry = False
@@ -80,28 +73,57 @@ def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hg
   if not os.path.exists(outdir):
     print "outdir %s does not exist. creating..." % outdir
     make_dir(outdir)
-  
+    
+  scan_outfiles = set(); upc_outfiles = set()
+  pids = set()
   for mdir, mems in members.items():
     batchname = os.path.basename(mdir)
-    script_SCAN = R_SCRIPT_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"SCAN", "batch":batchname,"outdir":outdir}
-    script_UPC = R_SCRIPT_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"UPC", "batch":batchname,"outdir":outdir}
-    print script_SCAN
-    print script_UPC
+    scan_outfile = "%s/%s.%s.RData" % (outdir,"SCAN",batchname)
+    upc_outfile = "%s/%s.%s.RData" % (outdir,"UPC",batchname)
+    script_SCAN = R_NORM_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"SCAN", "batch":batchname, "outfile":scan_outfile}
+    script_UPC = R_NORM_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"UPC", "batch":batchname, "outfile":upc_outfile}
+    scan_outfiles.add(scan_outfile)
+    upc_outfiles.add(upc_outfile)
+    
     scan_fpath = os.path.join(outdir,"%s.%s.R"%(batchname,"SCAN"))
     upc_fpath = os.path.join(outdir,"%s.%s.R"%(batchname,"UPC"))
     print "Writing %s, %s..." % (scan_fpath,upc_fpath)
     open(scan_fpath,"w").write(script_SCAN)
     open(upc_fpath,"w").write(script_UPC)
     # submit scripts to qsub
-    if not dry:
-      Q1 = qsub.Qsub(n_nodes=1, n_ppn=8, hours=99, email=True, jobname=scan_fpath)
-      Q1.add("R CMD BATCH %s %s.Rout" % (scan_fpath, scan_fpath))
-      Q1.submit(dry)
-      Q2 = qsub.Qsub(n_nodes=1, n_ppn=8, hours=99, email=True, jobname=upc_fpath)
-      Q2.add("R CMD BATCH %s %s.Rout" % (upc_fpath, upc_fpath))
-      Q2.submit(dry)
+    Q1 = qsub.Qsub(n_nodes=1, n_ppn=8, hours=6, email=True, jobname=gse+scan_fpath)
+    Q1.add("R CMD BATCH %s %s.Rout" % (scan_fpath, scan_fpath))
+    pids.add(Q1.submit(dry))
+    Q2 = qsub.Qsub(n_nodes=1, n_ppn=8, hours=6, email=True, jobname=gse+upc_fpath)
+    Q2.add("R CMD BATCH %s %s.Rout" % (upc_fpath, upc_fpath))
+    pids.add(Q2.submit(dry))
       
+  # create compile script
+  load_cmds = make_load_cmds(scan_outfiles, upc_outfiles)
+  scan_expr_list = make_expr_list(scan_outfiles)
+  upc_expr_list = make_expr_list(upc_outfiles)
+  script_compile = R_COMPILE_TMP % {'load_cmds': load_cmds, 'gse':gse, 'scan_expr_list':scan_expr_list, 'upc_expr_list':upc_expr_list, 'outdir':outdir}
+  compile_fname = os.path.join(outdir,"compile.R")
+  open(compile_fname,"w").write(script_compile)
+  Q3 = qsub.Qsub(hours=1, email=True, jobname="COMPILE", after_jobids=pids)
+  Q3.add("R CMD BATCH %s %s.Rout" % (compile_fname, compile_fname))
+  print Q3.script()
+  print Q3.submit(dry)
     
+
+def make_load_cmds(scan_outfiles, upc_outfiles):
+  z = []
+  for s in scan_outfiles:
+    z.append('load("%s")'%os.path.abspath(s))
+  for s in upc_outfiles:
+    z.append('load("%s")'%os.path.abspath(s))
+  return "\n".join(z)
+
+def make_expr_list(outfiles):
+  z = []
+  for s in outfiles:
+    z.append("exprs(E."+os.path.basename(s).replace('.RData','')+")")
+  return ", ".join(z)
 
 if __name__ == "__main__":
   args = dict((s.split('=') for s in sys.argv[1:]))

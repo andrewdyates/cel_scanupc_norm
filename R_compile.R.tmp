@@ -1,0 +1,7 @@
+library(Biobase)
+%(load_cmds)s
+S.%(gse)s <- cbind(%(scan_expr_list)s)
+U.%(gse)s <- cbind(%(upc_expr_list)s)
+# convert to Biobase
+# plot hist, boxplot, density
+save(S.%(gse)s, U.%(gse)s, file="%(outdir)s/%(gse)s.SCANUPC.RData")

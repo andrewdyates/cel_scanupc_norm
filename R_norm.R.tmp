@@ -1,0 +1,13 @@
+library(SCAN.UPC)
+library(%(name)sprobe)
+library(%(name)s.db)
+
+celFilePath <- "%(path)s/*%(ptn)s"
+norm.cust = %(cmd)s(celFilePath, probeSummaryPackage=hgu133plus2hsentrezgprobe)
+IDS <- rownames(exprs(norm.cust)) # note: IDS are entrez_ids appended by _at
+EIDS <- mget(IDS, %(name)sENTREZID, ifnotfound=NA)
+rm.noann <- is.na(EIDS)
+E.%(cmd)s.%(batch)s <- norm.cust[!rm.noann,]
+rownames(E.%(cmd)s.%(batch)s) <- EIDS[!rm.noann]
+# every row in EID is now uniquely identified by an entrez ID
+save(E.%(cmd)s.%(batch)s, file="%(outfile)s")
