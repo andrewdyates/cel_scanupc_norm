@@ -1,0 +1,31 @@
+library(Biobase)
+library(lumi)
+load("/home/ayates/brca/GSE31448/normed/SCAN.batch.8.RData")
+load("/home/ayates/brca/GSE31448/normed/SCAN.batch.2.RData")
+load("/home/ayates/brca/GSE31448/normed/SCAN.batch.5.RData")
+load("/home/ayates/brca/GSE31448/normed/SCAN.batch.4.RData")
+load("/home/ayates/brca/GSE31448/normed/SCAN.batch.3.RData")
+load("/home/ayates/brca/GSE31448/normed/SCAN.batch.7.RData")
+load("/home/ayates/brca/GSE31448/normed/SCAN.batch.1.RData")
+load("/home/ayates/brca/GSE31448/normed/SCAN.batch.6.RData")
+load("/home/ayates/brca/GSE31448/normed/UPC.batch.3.RData")
+load("/home/ayates/brca/GSE31448/normed/UPC.batch.4.RData")
+load("/home/ayates/brca/GSE31448/normed/UPC.batch.2.RData")
+load("/home/ayates/brca/GSE31448/normed/UPC.batch.7.RData")
+load("/home/ayates/brca/GSE31448/normed/UPC.batch.8.RData")
+load("/home/ayates/brca/GSE31448/normed/UPC.batch.6.RData")
+load("/home/ayates/brca/GSE31448/normed/UPC.batch.1.RData")
+load("/home/ayates/brca/GSE31448/normed/UPC.batch.5.RData")
+S.GSE31448 <- cbind(exprs(E.SCAN.batch.8), exprs(E.SCAN.batch.2), exprs(E.SCAN.batch.5), exprs(E.SCAN.batch.4), exprs(E.SCAN.batch.3), exprs(E.SCAN.batch.7), exprs(E.SCAN.batch.1), exprs(E.SCAN.batch.6))
+U.GSE31448 <- cbind(exprs(E.UPC.batch.3), exprs(E.UPC.batch.4), exprs(E.UPC.batch.2), exprs(E.UPC.batch.7), exprs(E.UPC.batch.8), exprs(E.UPC.batch.6), exprs(E.UPC.batch.1), exprs(E.UPC.batch.5))
+# convert to Biobase
+# plot hist, boxplot, density
+save(S.GSE31448, U.GSE31448, file="/home/ayates/brca/GSE31448/normed/GSE31448.SCANUPC.RData")
+E.S.GSE31448 <- ExpressionSet(as.matrix(S.GSE31448))
+
+
+pdf('~/test.pdf')
+density(E.S.GSE31448)
+boxplot(E.S.GSE31448)
+dev.off()
+# add histograms
