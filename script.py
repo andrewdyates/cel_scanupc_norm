@@ -29,7 +29,10 @@ def split_cels(fdir, n=50, ptn=".CEL.gz", dry=False):
       c += 1; i += 1
       dirpath = os.path.join(fdir,"batch."+str(c))
       members[dirpath] = set([fpath])
-  print "Created %d directories of %d files, <=%d each" % (len(members), i, n)
+  if i==0:
+    print "WARNING: no CEL files found. Maybe the path %s or the file pattern %s are wrong?" % (fdir, ptn)
+    return None
+  print "Sorted %d files into %d directories of <=%d files each" % (i, len(members), n)
   
   for cdir, mems in members.items():
     print "Making directory %s..." %cdir
@@ -68,6 +71,9 @@ def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hg
     members = split_cels(fdir, n, ptn, dry)
   else:
     members = read_split(fdir, ptn)
+  if members is None:
+    print "Exiting..."
+    sys.exit(1)
 
   if not os.path.exists(outdir):
     print "outdir %s does not exist. creating..." % outdir
