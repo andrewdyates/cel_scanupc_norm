@@ -109,7 +109,7 @@ def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hg
   upc_expr_list = make_expr_list(upc_outfiles)
   script_compile = R_COMPILE_TMP % {'load_cmds': load_cmds, 'gse':gse, 'scan_expr_list':scan_expr_list, 'upc_expr_list':upc_expr_list, 'outdir':outdir}
   compile_fname = os.path.join(outdir,"compile.R")
-  print "Writing %s..."
+  print "Writing compile script %s..." % compile_fname
   open(compile_fname,"w").write(script_compile)
   Q3 = qsub.Qsub(hours=1, email=True, jobname="COMPILE", after_jobids=pids)
   Q3.add("R CMD BATCH %s %s.Rout" % (compile_fname, compile_fname))
