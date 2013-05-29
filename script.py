@@ -3,13 +3,14 @@
 python ~/source_code/cel_scanupc_norm/script.py fdir=$HOME/brca/GSE31448/raw/cel outdir=$HOME/brca/GSE31448/normed dry=True
 python ~/source_code/cel_scanupc_norm/script.py fdir=$HOME/brca/GSE31448/raw/cel.bkp outdir=$HOME/brca/GSE31448/normed gse=GSE31448 dry=True 
 """
+USAGE = "USE: python script.py fdir=/path/to/cel/ outdir=/path/to/output/ gse=[GSE Name] dry=[T/F] ptn=[.CEL.gz] dosplit=[T/F], n=[number dft 50]"
 from lab_util import *
 import qsub
 import sys, os, shutil, re
 LOCALDIR = os.path.abspath(os.path.dirname(__file__))
 
 PLATFORMS = set(["hgu133plus2hsentrezg"])
-RX_BATCHDIR = re.compile("batch_\d+")
+RX_BATCHDIR = re.compile("batch\.\d+")
 R_NORM_TMP = open(os.path.join(LOCALDIR,"R_norm.R.tmp")).read()
 R_COMPILE_TMP = open(os.path.join(LOCALDIR,"R_compile.R.tmp")).read()
 
@@ -45,6 +46,7 @@ def split_cels(fdir, n=50, ptn=".CEL.gz", dry=False):
 
 def read_split(fdir, ptn):
   i = 0
+  members = {}
   for fname in os.listdir(fdir):
     if RX_BATCHDIR.match(fname):
       fpath = os.path.join(fdir,fname)
@@ -54,10 +56,11 @@ def read_split(fdir, ptn):
           i += 1
           members[fpath].add(os.path.join(fpath,s))
   print "Read %d directories of %d files." % (len(members), i)
+  return members
   
 
       
-def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hgu133plus2hsentrezg", dry=False, gse=None):
+def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hgu133plus2hsentrezg", dry=False, gse=None, overwrite=False):
   assert fdir
   assert n
   assert ptn
@@ -66,6 +69,7 @@ def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hg
   n = int(n)
   if isinstance(dosplit, basestring) and dosplit.lower() in ('f','false','none'): dosplit = False
   if isinstance(dry, basestring) and dry.lower() in ('f','false','none'): dry = False
+  if isinstance(overwrite, basestring) and overwrite.lower() in ('f','false','none'): overwrite = False
     
   if dosplit:
     members = split_cels(fdir, n, ptn, dry)
@@ -85,21 +89,25 @@ def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hg
     batchname = os.path.basename(mdir)
     scan_outfile = "%s/%s.%s.RData" % (outdir,"SCAN",batchname)
     upc_outfile = "%s/%s.%s.RData" % (outdir,"UPC",batchname)
-    script_SCAN = R_NORM_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"SCAN", "batch":batchname, "outfile":scan_outfile}
-    script_UPC = R_NORM_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"UPC", "batch":batchname, "outfile":upc_outfile}
     scan_outfiles.add(scan_outfile)
     upc_outfiles.add(upc_outfile)
-    
+    if not overwrite and os.path.exists(scan_outfile) and os.path.exists(upc_outfile):
+      print "%s and %s for batchname %s already exists and `overwrite` parameter is false. skipping..." % \
+        (scan_outfile, upc_outfile, batchname)
+      continue
+      
+    script_SCAN = R_NORM_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"SCAN", "batch":batchname, "outfile":scan_outfile}
+    script_UPC = R_NORM_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"UPC", "batch":batchname, "outfile":upc_outfile}
     scan_fpath = os.path.join(outdir,"%s.%s.R"%(batchname,"SCAN"))
     upc_fpath = os.path.join(outdir,"%s.%s.R"%(batchname,"UPC"))
     print "Writing %s, %s..." % (scan_fpath,upc_fpath)
     open(scan_fpath,"w").write(script_SCAN)
     open(upc_fpath,"w").write(script_UPC)
     # submit scripts to qsub
-    Q1 = qsub.Qsub(n_nodes=1, n_ppn=8, hours=6, email=True, jobname=gse+scan_fpath)
+    Q1 = qsub.Qsub(n_nodes=1, n_ppn=8, hours=24, email=True, jobname=gse+scan_fpath)
     Q1.add("R CMD BATCH %s %s.Rout" % (scan_fpath, scan_fpath))
     pids.add(Q1.submit(dry))
-    Q2 = qsub.Qsub(n_nodes=1, n_ppn=8, hours=6, email=True, jobname=gse+upc_fpath)
+    Q2 = qsub.Qsub(n_nodes=1, n_ppn=8, hours=24, email=True, jobname=gse+upc_fpath)
     Q2.add("R CMD BATCH %s %s.Rout" % (upc_fpath, upc_fpath))
     pids.add(Q2.submit(dry))
       
@@ -134,4 +142,7 @@ def make_expr_list(outfiles):
 if __name__ == "__main__":
   args = dict((s.split('=') for s in sys.argv[1:]))
   print args
+  if not args:
+    print USAGE
+    sys.exit(1)
   main(**args)

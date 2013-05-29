@@ -6,8 +6,8 @@ U.%(gse)s <- as.matrix(cbind(%(upc_expr_list)s))
 
 # WRITE TABLES
 save(S.%(gse)s, U.%(gse)s, file="%(outdir)s/%(gse)s.SCANUPC.RData")
-write.table(S.%(gse)s, file="~/%(gse)s.SCAN.tab", col.names=NA, row.names=T, sep="\t")
-write.table(U.%(gse)s, file="~/%(gse)s.UPC.tab", col.names=NA, row.names=T, sep="\t")
+write.table(S.%(gse)s, file="%(outdir)s/%(gse)s.SCAN.tab", col.names=NA, row.names=T, sep="\t")
+write.table(U.%(gse)s, file="%(outdir)s/%(gse)s.UPC.tab", col.names=NA, row.names=T, sep="\t")
 
 # DIAGNOSTIC PLOTS
 E.S.%(gse)s <- ExpressionSet(S.%(gse)s)
