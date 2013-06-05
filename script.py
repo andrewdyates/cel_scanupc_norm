@@ -9,7 +9,6 @@ import qsub
 import sys, os, shutil, re
 LOCALDIR = os.path.abspath(os.path.dirname(__file__))
 
-PLATFORMS = set(["hgu133plus2hsentrezg"])
 RX_BATCHDIR = re.compile("batch\.\d+")
 R_NORM_TMP = open(os.path.join(LOCALDIR,"R_norm.R.tmp")).read()
 R_COMPILE_TMP = open(os.path.join(LOCALDIR,"R_compile.R.tmp")).read()
@@ -73,6 +72,9 @@ def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hg
     
   if dosplit:
     members = split_cels(fdir, n, ptn, dry)
+    if members is None:
+      print "Attempting to read already divided .cel files in %s..." % outdir
+      members = read_split(fdir, ptn)
   else:
     members = read_split(fdir, ptn)
   if members is None:
