@@ -17,6 +17,9 @@ U.%(gse)s <- U.%(gse)s[qq.row,]
 stds <- apply(S.%(gse)s,1,sd)
 b <- as.numeric(quantile(stds,0.03))*2
 print(b)
+print(dim(S.%(gse)s))
+print(sum(stds<b)/dim(S.%(gse)s)[0])
+print(quantile(stds,0.25))
 
 # CREATE BIOBASE EXPR OBJECTS
 E.%(gse)s <- ExpressionSet(S.%(gse)s)
@@ -26,7 +29,7 @@ SYMS <- mget(IDS, %(name)sSYMBOL, ifnotfound=NA)
 featureData(E.%(gse)s)$SYM <- SYMS
 
 # WRITE TABLES
-save(E.%(gse)s, b, S.%(gse)s, U.%(gse)s, file="%(outdir)s/%(gse)s.SCANUPC.RData")
+save(E.%(gse)s, b, SYMS, S.%(gse)s, U.%(gse)s, file="%(outdir)s/%(gse)s.SCANUPC.RData")
 writeLines(SYMS, file="%(outdir)s/%(gse)s.genesyms.txt")
 write.table(S.%(gse)s, file="%(outdir)s/%(gse)s.SCAN.tab", col.names=NA, row.names=T, sep="\t")
 write.table(U.%(gse)s, file="%(outdir)s/%(gse)s.UPC.tab", col.names=NA, row.names=T, sep="\t")
