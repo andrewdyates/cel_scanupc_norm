@@ -6,8 +6,8 @@ S.%(gse)s <- as.matrix(cbind(%(scan_expr_list)s))
 U.%(gse)s <- as.matrix(cbind(%(upc_expr_list)s))
 
 # STRIP EXT FROM COL NAMES
-colnames(S.%(gse)s) <- sub(%(ext)s,'',colnames(S.%(gse)s))
-colnames(U.%(gse)s) <- sub(%(ext)s,'',colnames(S.%(gse)s))
+colnames(S.%(gse)s) <- sub("%(ptn)s",'',colnames(S.%(gse)s))
+colnames(U.%(gse)s) <- sub("%(ptn)s",'',colnames(S.%(gse)s))
 # ROW AND COLUMN ALIGN MATRICES
 qq.col <- match(colnames(S.%(gse)s), colnames(U.%(gse)s))
 U.%(gse)s <- U.%(gse)s[,qq.col]
@@ -30,7 +30,7 @@ featureData(E.%(gse)s)$SYM <- SYMS
 
 # WRITE TABLES
 save(E.%(gse)s, b, SYMS, S.%(gse)s, U.%(gse)s, file="%(outdir)s/%(gse)s.SCANUPC.RData")
-writeLines(SYMS, file="%(outdir)s/%(gse)s.genesyms.txt")
+writeLines(as.character(SYMS), "%(outdir)s/%(gse)s.genesyms.txt")
 write.table(S.%(gse)s, file="%(outdir)s/%(gse)s.SCAN.tab", col.names=NA, row.names=T, sep="\t")
 write.table(U.%(gse)s, file="%(outdir)s/%(gse)s.UPC.tab", col.names=NA, row.names=T, sep="\t")
 

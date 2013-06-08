@@ -3,7 +3,7 @@ library(%(name)sprobe)
 library(%(name)s.db)
 
 celFilePath <- "%(path)s/*%(ptn)s"
-norm.cust = %(cmd)s(celFilePath, probeSummaryPackage=%(name)s)
+norm.cust = %(cmd)s(celFilePath, probeSummaryPackage=%(name)sprobe)
 IDS <- rownames(exprs(norm.cust)) # note: IDS are entrez_ids appended by _at
 EIDS <- mget(IDS, %(name)sENTREZID, ifnotfound=NA)
 rm.noann <- is.na(EIDS)

@@ -1,7 +1,6 @@
 #!/usr/bin/python
 """
-python ~/source_code/cel_scanupc_norm/script.py fdir=$HOME/brca/GSE31448/raw/cel outdir=$HOME/brca/GSE31448/normed dry=True
-python ~/source_code/cel_scanupc_norm/script.py fdir=$HOME/brca/GSE31448/raw/cel.bkp outdir=$HOME/brca/GSE31448/normed gse=GSE31448 dry=True 
+time python ~/code/cel_scanupc_norm/script.py fdir=$HOME/brca/GSE23720/raw/cel outdir=$HOME/brca/GSE23720/normed gse=GSE23720
 """
 USAGE = "USE: python script.py fdir=/path/to/cel/ outdir=/path/to/output/ gse=[GSE Name] dry=[T/F] ptn=[.CEL.gz] dosplit=[T/F], n=[number dft 50]"
 from lab_util import *
