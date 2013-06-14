@@ -2,7 +2,7 @@
 """
 time python ~/code/cel_scanupc_norm/script.py fdir=$HOME/brca/GSE23720/raw/cel outdir=$HOME/brca/GSE23720/normed gse=GSE23720
 """
-USAGE = "USE: python script.py fdir=/path/to/cel/ outdir=/path/to/output/ gse=[GSE Name] dry=[T/F] ptn=[.CEL.gz] dosplit=[T/F], n=[number dft 50]"
+USAGE = "USE: python script.py fdir=*[/path/to/cel/dir] outdir=*[/path/to/output/] gse=*[GSE Name] dry=[F] ptn=[.CEL.gz] platform=[hgu133plus2hsentrezg] n=[number dft 50]"
 from lab_util import *
 import qsub
 import sys, os, shutil, re
