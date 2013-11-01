@@ -1,0 +1,8 @@
+library(SCAN.UPC)
+library(%(name)sprobe)
+library(%(name)s.db)
+
+celFilePath <- "%(path)s/*%(ptn)s"
+E.%(cmd)s.%(batch)s = %(cmd)s(celFilePath, probeSummaryPackage=%(name)sprobe)
+# every row in EID is now uniquely identified by an entrez ID
+save(E.%(cmd)s.%(batch)s, file="%(outfile)s")

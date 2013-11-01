@@ -24,7 +24,11 @@ print(quantile(stds,0.25))
 # CREATE BIOBASE EXPR OBJECTS
 E.%(gse)s <- ExpressionSet(S.%(gse)s)
 # ADD GENE SYMBOL FEATUREDATA
-IDS <- paste0(rownames(S.%(gse)s),"_at")
+if (all(!grepl("_at$", rownames(S.%(gse)s)))) {
+   IDS <- paste0(rownames(S.%(gse)s),"_at")
+} else {
+   IDS <- rownames(S.%(gse)s)
+}
 SYMS <- mget(IDS, %(name)sSYMBOL, ifnotfound=NA)
 featureData(E.%(gse)s)$SYM <- SYMS
 

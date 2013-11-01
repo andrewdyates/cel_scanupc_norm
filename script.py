@@ -1,8 +1,10 @@
 #!/usr/bin/python
 """
 time python ~/code/cel_scanupc_norm/script.py fdir=$HOME/brca/GSE23720/raw/cel outdir=$HOME/brca/GSE23720/normed gse=GSE23720
+
+time python ~/code/cel_scanupc_norm/script.py fdir=$HOME/m3d/ecoli_build6 outdir=$HOME/m3d/ecoli_build6_scanupc gse=M3D rename_ids=F platform=ecoli2 n=30
 """
-USAGE = "USE: python script.py fdir=*[/path/to/cel/dir] outdir=*[/path/to/output/] gse=*[GSE Name] dry=[F] ptn=[.CEL.gz] platform=[hgu133plus2hsentrezg] n=[number dft 50]"
+USAGE = "USE: python script.py fdir=*[/path/to/cel/dir] outdir=*[/path/to/output/] gse=*[GSE Name] dry=[F] ptn=[.CEL.gz] platform=[hgu133plus2hsentrezg] n=[number dft 50] rename_ids=[T]"
 from lab_util import *
 import qsub
 import sys, os, shutil, re
@@ -10,6 +12,7 @@ LOCALDIR = os.path.abspath(os.path.dirname(__file__))
 
 RX_BATCHDIR = re.compile("batch\.\d+")
 R_NORM_TMP = open(os.path.join(LOCALDIR,"R_norm.R.tmp")).read()
+R_NORM_NORENAME_TMP = open(os.path.join(LOCALDIR,"R_norm_norename.R.tmp")).read()
 R_COMPILE_TMP = open(os.path.join(LOCALDIR,"R_compile.R.tmp")).read()
 
 
@@ -19,7 +22,6 @@ def split_cels(fdir, n=50, ptn=".CEL.gz", dry=False):
   dirpath = os.path.join(fdir,"batch."+str(c))
   members = {dirpath:set()}; 
   for fname in os.listdir(fdir):
-    if ptn not in fname: continue
     fpath = os.path.join(fdir, fname)
     if len(members[dirpath]) < n:
       members[dirpath].add(fpath)
@@ -58,7 +60,7 @@ def read_split(fdir, ptn):
   
 
       
-def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hgu133plus2hsentrezg", dry=False, gse=None, overwrite=False):
+def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hgu133plus2hsentrezg", dry=False, gse=None, overwrite=False, rename_ids=True):
   assert fdir
   assert n
   assert ptn
@@ -68,7 +70,8 @@ def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hg
   if isinstance(dosplit, basestring) and dosplit.lower() in ('f','false','none'): dosplit = False
   if isinstance(dry, basestring) and dry.lower() in ('f','false','none'): dry = False
   if isinstance(overwrite, basestring) and overwrite.lower() in ('f','false','none'): overwrite = False
-    
+  if isinstance(rename_ids, basestring) and rename_ids.lower() in ('f','false','none'): rename_ids = False
+
   if dosplit:
     members = split_cels(fdir, n, ptn, dry)
     if members is None:
@@ -96,9 +99,13 @@ def main(fdir=None, n=50, ptn=".CEL.gz", outdir=None, dosplit=True, platform="hg
       print "%s and %s for batchname %s already exists and `overwrite` parameter is false. skipping..." % \
         (scan_outfile, upc_outfile, batchname)
       continue
-      
-    script_SCAN = R_NORM_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"SCAN", "batch":batchname, "outfile":scan_outfile}
-    script_UPC = R_NORM_TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"UPC", "batch":batchname, "outfile":upc_outfile}
+
+    if rename_ids:
+      TMP = R_NORM_TMP
+    else:
+      TMP = R_NORM_NORENAME_TMP
+    script_SCAN = TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"SCAN", "batch":batchname, "outfile":scan_outfile}
+    script_UPC = TMP % {'name':platform, "path":mdir, "ptn":ptn, "cmd":"UPC", "batch":batchname, "outfile":upc_outfile}
     scan_fpath = os.path.join(outdir,"%s.%s.R"%(batchname,"SCAN"))
     upc_fpath = os.path.join(outdir,"%s.%s.R"%(batchname,"UPC"))
     print "Writing %s, %s..." % (scan_fpath,upc_fpath)
